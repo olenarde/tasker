@@ -1,0 +1,30 @@
+version: '3.8'
+services:
+  # container1 - database
+  database:
+    container_name: ${CONTAINER_NAME}
+    image: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    healthcheck:
+      test: psql -U ${POSTGRES_USER} -q -d ${POSTGRES_DB} -c "SELECT 'ready';"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    ports:
+      - "${PORT_HOST}:${PORT_CONTAINER}"
+    networks:
+      tasker_dev_network:
+        ipv4_address: ${CONTAINER_IP}
+
+networks:
+  tasker_dev_network:
+    ipam:
+      driver: default
+      config:
+        - subnet: ${CONTAINER_SUBNET}
+          gateway: ${CONTAINER_GATEWAY}
