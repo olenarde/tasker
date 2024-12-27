@@ -41,6 +41,8 @@ pub fn App() -> impl IntoView {
             <main>
                 <Routes fallback=|| "Page not found.".into_view()>
                     <Route path=StaticSegment("") view=HomePage/>
+                    <Route path=StaticSegment("/profile") view=ProfilePage/>
+                    // <Route path="/profile" view=ProfilePage/>
                 </Routes>
             </main>
         </Router>
@@ -57,5 +59,13 @@ fn HomePage() -> impl IntoView {
     view! {
         <h1>"Welcome to Leptos!"</h1>
         <button on:click=on_click>"Click Me: " {count}</button>
+    }
+}
+
+#[component]
+fn ProfilePage() -> impl IntoView {
+
+    view! {
+        <h1>{"Profile Page"}</h1>
     }
 }
