@@ -1,5 +1,5 @@
 
-// #[cfg(feature = "ssr")]
+#[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
     use axum::extract::Request;
@@ -7,13 +7,17 @@ async fn main() {
     use axum::middleware::{self, Next};
     use axum::response::{Redirect, Response};
     use axum::Router;
+    use axum::routing::{get, post};
     use leptos::logging::log;
     use leptos::prelude::*;
-    use leptos_axum::{generate_route_list, generate_route_list_with_exclusions, LeptosRoutes};
-    use frontend::app::*;
-    
-    use frontend::server::utils::routes::routes;
+    use leptos_axum::{generate_route_list, generate_route_list_with_exclusions, LeptosRoutes, handle_server_fns};
+    use clap::Parser;
 
+    use website::app::*;
+    use website::server::utils::clap::Opts;
+    use website::app::ssr::AppState;
+
+    // This GUARD function will be moved somewhere else and refactored soon
     async fn guard(
         mut request: Request<Body>,
         next: Next
@@ -27,31 +31,52 @@ async fn main() {
     let leptos_options = conf.leptos_options;
 
 
-    let protected_routes = generate_route_list_with_exclusions(App, Some(vec![
+    let protected_paths = generate_route_list_with_exclusions(App, Some(vec![
         // Add here routes, that are NOT protected (mean exceptions)
-        "/".to_owned()
+
+        // unprotected routes
+        "/".to_owned(),
+
+        // unprotected API calls
     ]));
 
-    let unprotected_routes = generate_route_list_with_exclusions(App, Some(vec![
+    let unprotected_paths = generate_route_list_with_exclusions(App, Some(vec![
         // Add here routes, that MUST BE protected (mean expections for unprotected)
-        "/profile".to_owned()
+
+        // protected routes
+        "/profile".to_owned(),
+        // protected API calls
+        "/api/load_db_string".to_owned()
     ]));
+    
+    // THIS STATE WITH READ FROM ENV WILL BE REFACTORED SOON
+    // STATE GOES HERE
+    let opts = Opts::parse();
+    // let conn = Database::connect(opts.conn).await.unwrap();
+
+    let app_state = AppState {
+        // leptos_options: leptos_options.clone(),
+        // db: conn,
+        conn: opts.conn
+    };
+
+    let context = move || provide_context(app_state.clone());
 
     let protected_router = Router::new()
-        .leptos_routes(&leptos_options, protected_routes, {
+        .leptos_routes_with_context(&leptos_options, protected_paths, context.clone(), {
             let leptos_options = leptos_options.clone();
             move || shell(leptos_options.clone())
-        })
-        .route_layer(middleware::from_fn(guard));
-
+        });
+        
     let unprotected_router = Router::new()
-        .leptos_routes(&leptos_options, unprotected_routes, {
+        .leptos_routes_with_context(&leptos_options, unprotected_paths, context, {
             let leptos_options = leptos_options.clone();
             move || shell(leptos_options.clone())
         });
 
     let app = Router::new()
         .merge(protected_router)
+        .route_layer(middleware::from_fn(guard))
         .merge(unprotected_router)
         .fallback(leptos_axum::file_and_error_handler(shell))
         .with_state(leptos_options);
