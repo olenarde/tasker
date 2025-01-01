@@ -1,4 +1,5 @@
 pub mod app;
+pub mod views;
 
 #[cfg(feature = "ssr")]
 pub mod server;

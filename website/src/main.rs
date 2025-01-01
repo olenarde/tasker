@@ -36,6 +36,8 @@ async fn main() {
 
         // unprotected routes
         "/".to_owned(),
+        "/register".to_owned(),
+        "/login".to_owned(),
 
         // unprotected API calls
     ]));
